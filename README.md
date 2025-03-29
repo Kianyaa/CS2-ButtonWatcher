@@ -1,6 +1,9 @@
 # CS2-ButtonWatcher
 
 **CS2 plugin for watching player pressing button or triggering platform or invisible trigger wall**
+<br>
+
+![สกรีนช็อต 2025-03-30 052645](https://github.com/user-attachments/assets/9efc5c85-c7c6-4c91-80ab-3da8d68497fe)
 
 
 ## Features
