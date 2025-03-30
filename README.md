@@ -1,17 +1,16 @@
 # CS2-ButtonWatcher
 
-**CS2 plugin for watching player pressing button or triggering platform or invisible trigger wall**
+**CS2 plugin for zombie escape game mode, watcher watching player pressing button or triggering platform or invisible trigger wall**
 <br>
 
-![สกรีนช็อต 2025-03-30 052645](https://github.com/user-attachments/assets/9efc5c85-c7c6-4c91-80ab-3da8d68497fe)
-
+![สกรีนช็อต 2025-03-30 160345](https://github.com/user-attachments/assets/ae38a321-0623-4cdd-bd7f-d4b606824216)
 
 ## Features
 
 - Watcher both `func_button` (button) and `trigger_once` (platform/invisible wall)
-- Print to Chat All including Team, trigger time, Player Name, SteamID, PlayerID, Entity Index / Name
-- Not detect when in warm-up round
-- prevent detect trigger at spawn point (wait 2 sec after map start then start detect)
+- Print to Chat All including `Team`, `trigger time`, `Player Name`, `SteamID`, `PlayerID`, `Entity Index`, `Entity Name`
+- Not detect when in the warm-up round
+- prevent detect trigger at spawn point (wait 2 sec after the map starts then start to detect)
 
 
 ## Requirements
