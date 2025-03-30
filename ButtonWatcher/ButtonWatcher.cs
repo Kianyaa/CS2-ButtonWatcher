@@ -14,106 +14,77 @@ public class ButtonWatcherPlugin : BasePlugin
 
     public override void Load(bool hotReload)
     {
-        HookEntityOutput("func_button", "OnPressed", OnPlayerPressedButton, HookMode.Post);
-        HookEntityOutput("trigger_once", "OnStartTouch", OnPlayerStartTouch, HookMode.Post);
+        HookEntityOutput("func_button", "OnPressed", OnEntityTriggered, HookMode.Post);
+        HookEntityOutput("trigger_once", "OnStartTouch", OnEntityTriggered, HookMode.Post);
     }
 
-    // Class func_button usually is a button that can be pressed by players on the map.
-    public HookResult OnPlayerPressedButton(CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay)
+    // Hook entity output to detect player interaction
+    private HookResult OnEntityTriggered(CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay)
     {
-        // Get the entity of the button
-        var buttonEntity = caller.Entity;
-        if (buttonEntity == null)
+        // Validate activator
+        if (activator == null || !activator.IsValid)
             return HookResult.Continue;
 
-        // Get the player who pressed the button
+        // Get the player who triggered the entity
         var pawnIdx = (int)activator.Index;
         var playerPawn = Utilities.GetEntityFromIndex<CCSPlayerPawn>(pawnIdx);
-
-        // Check if the player is valid
         if (playerPawn == null || !playerPawn.IsValid || playerPawn.OriginalController == null || !playerPawn.OriginalController.IsValid)
             return HookResult.Continue;
 
         // Get the player controller
-        CCSPlayerController? playerController = playerPawn.OriginalController.Value;
-
-        // Check if the player controller is valid
+        var playerController = playerPawn.OriginalController.Value;
         if (playerController == null || !playerController.IsValid)
             return HookResult.Continue;
 
-        // Get the player's name, Steam ID, User ID, button entity name, and button entity index
-        var sPlayerName = playerController.PlayerName;
-        var sSteamID = playerController.SteamID;
-        var sUserID = playerController.UserId;
-        var sButtonEntityName = buttonEntity.Name;
-        var iButtonEntityIndex = caller.Index;
-        var sPlayerTeam = playerController.Team.ToString();
-
-        // Convert the player's team
-        sPlayerTeam = sPlayerTeam == "CounterTerrorist" ? "Human" : "Zombie";
-
-        // Get the game rules
-        var gameRules = Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules").First().GameRules!;
-
-        // Get the time left in the round
-        var iTime = gameRules.RoundTime - (int)(gameRules.LastThinkTime - gameRules.RoundStartTime);
-        var iMin = iTime / 60;
-        var iSec = iTime % 60;
-
-        Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{sPlayerTeam}{ChatColors.White}][{ChatColors.LightRed}{iMin}:{iSec}{ChatColors.White}]{ChatColors.Lime}{sPlayerName}{ChatColors.White}[{ChatColors.Orange}{sSteamID}{ChatColors.White}][{ChatColors.Lime}#{sUserID}{ChatColors.White}] triggered {ChatColors.LightRed}{sButtonEntityName}[#{iButtonEntityIndex}] {ChatColors.White}this button!");
-        Logger.LogInformation($"[{sPlayerTeam}] [{iMin}:{iSec}]{sPlayerName}[{sSteamID}][#{sUserID}] triggered {sButtonEntityName}[#{iButtonEntityIndex}] this button!");
+        // Log interaction
+        LogPlayerInteraction(playerController, caller);
 
         return HookResult.Continue;
     }
 
-    // Class trigger_once usually is teleportation, invisible wall or platform etc.
-    public HookResult OnPlayerStartTouch(CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay)
+    // Log player interaction with the entity
+    private void LogPlayerInteraction(CCSPlayerController playerController, CEntityInstance caller)
     {
-        // Get the entity of the button
-        CEntityIdentity? TouchEntity = caller.Entity;
-        if (TouchEntity == null)
-            return HookResult.Continue;
+        // Validate caller
+        var entity = caller.Entity;
+        if (entity == null) return;
 
-        // Get the player who touched the button
-        int pawnIdx = (int)activator.Index;
-        CCSPlayerPawn? playerPawn = Utilities.GetEntityFromIndex<CCSPlayerPawn>(pawnIdx);
-        if (playerPawn == null || !playerPawn.IsValid || playerPawn.OriginalController == null || !playerPawn.OriginalController.IsValid)
-            return HookResult.Continue;
+        // Get player information
+        var playerName = playerController.PlayerName;
+        var steamID = playerController.SteamID;
+        var userID = playerController.UserId;
+        var entityName = entity.Name;
+        var entityIndex = caller.Index;
+        var playerTeam = playerController.Team.ToString() == "CounterTerrorist" ? "Human" : "Zombie";
 
-        // Get the player controller is valid
-        CCSPlayerController? playerController = playerPawn.OriginalController.Value;
+        // Get game rules safely
+        var gameRulesProxy = Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules").FirstOrDefault();
+        if (gameRulesProxy?.GameRules == null) return;
 
-        if (playerController == null || !playerController.IsValid)
-            return HookResult.Continue;
+        // Get game rules
+        var gameRules = gameRulesProxy.GameRules;
 
-        // Get the player's name, Steam ID, User ID, button entity name, and button entity index
-        string sPlayerName = playerController.PlayerName;
-        ulong sSteamID = playerController.SteamID;
-        int? sUserID = playerController.UserId;
-        string sButtonEntityName = TouchEntity.Name;
-        uint iButtonEntityIndex = caller.Index;
-        var sPlayerTeam = playerController.Team.ToString();
+        // Ignore detect if the round just started within 2 seconds
+        var timeSinceRoundStart = (int)(gameRules.LastThinkTime - gameRules.RoundStartTime);
+        if (timeSinceRoundStart <= 2) return;
 
-        // Convert the player's team
-        sPlayerTeam = sPlayerTeam == "CounterTerrorist" ? "Human" : "Zombie";
+        // Ignore if the round is in warmup
+        var isWarmup = gameRules.WarmupPeriod;
+        if (isWarmup == true) return;
 
-        // Get the game rules
-        CCSGameRules gameRules = Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules").First().GameRules!;
+        // Get time left in the round
+        var timeLeft = gameRules.RoundTime - timeSinceRoundStart;
+        var minutes = timeLeft / 60;
+        var seconds = timeLeft % 60;
 
-        // Get the time left in the round
-        int iTime = gameRules.RoundTime - (int)(gameRules.LastThinkTime - gameRules.RoundStartTime);
-        int iMin = iTime / 60;
-        int iSec = iTime % 60;
-
-        Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{sPlayerTeam}{ChatColors.White}][{ChatColors.LightRed}{iMin}:{iSec}{ChatColors.White}]{ChatColors.Lime}{sPlayerName}{ChatColors.White}[{ChatColors.Orange}{sSteamID}{ChatColors.White}][{ChatColors.Lime}#{sUserID}{ChatColors.White}] triggered {ChatColors.LightRed}{sButtonEntityName}[#{iButtonEntityIndex}] {ChatColors.White}this!");
-        Logger.LogInformation($"[{sPlayerTeam}] [{iMin}:{iSec}]{sPlayerName}[{sSteamID}][#{sUserID}] triggered {sButtonEntityName}[#{iButtonEntityIndex}] this!");
-
-        return HookResult.Continue;
+        // Print to chat and log
+        Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}][{ChatColors.LightRed}{minutes}:{seconds}{ChatColors.White}]{ChatColors.Lime}{playerName}{ChatColors.White}[{ChatColors.Orange}{steamID}{ChatColors.White}][{ChatColors.Lime}#{userID}{ChatColors.White}] triggered {ChatColors.LightRed}{entityName}[#{entityIndex}] {ChatColors.White}!");
+        Logger.LogInformation($"[{playerTeam}] [{minutes}:{seconds}] {playerName}[{steamID}][#{userID}] triggered {entityName}[#{entityIndex}]!");
     }
 
     public override void Unload(bool hotReload)
     {
-        UnhookEntityOutput("func_button", "OnPressed", OnPlayerPressedButton, HookMode.Post);
-        UnhookEntityOutput("trigger_once", "OnStartTouch", OnPlayerStartTouch, HookMode.Post);
+        UnhookEntityOutput("func_button", "OnPressed", OnEntityTriggered, HookMode.Post);
+        UnhookEntityOutput("trigger_once", "OnStartTouch", OnEntityTriggered, HookMode.Post);
     }
 }
