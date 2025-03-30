@@ -10,6 +10,8 @@
 
 - Watcher both `func_button` (button) and `trigger_once` (platform/invisible wall)
 - Print to Chat All including Team, trigger time, Player Name, SteamID, PlayerID, Entity Index / Name
+- Not detect when in warm-up round
+- prevent detect trigger at spawn point (wait 2 sec after map start then start detect)
 
 
 ## Requirements
