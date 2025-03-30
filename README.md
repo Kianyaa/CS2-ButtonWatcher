@@ -19,12 +19,12 @@
 
 ## Installation
 
-download latest relase version from [Releases Latest]()
+download latest relase version from [Releases Latest](https://github.com/Kianyaa/CS2-ButtonWatcher/releases/tag/Latest)
 and extract zip file and paste `ButtonWatcher.dll` on `addons\counterstrikesharp\plugins\ButtonWatcher` folder,
 restart server or change the map.
 
 ## Credits
-This repository project is improving version and fork from original [cs2-css-ButtonWatcher](https://github.com/Kianyaa/CS2-ButtonWatcher/releases/tag/Latest) by STONE-GPY (石)
+This repository project is improving version and fork from original [cs2-css-ButtonWatcher](https://github.com/STONE-GPY/cs2-css-ButtonWatcher) by STONE-GPY (石)
 
 
 
