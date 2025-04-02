@@ -3,6 +3,12 @@
 **CS2 plugin for zombie escape game mode, watcher watching player pressing button or triggering platform or invisible trigger wall**
 <br>
 
+### Showcase
+
+https://github.com/user-attachments/assets/48dd2b4d-8bb4-47de-a60a-a76170307621
+
+<br>
+
 ![สกรีนช็อต 2025-03-30 160345](https://github.com/user-attachments/assets/ae38a321-0623-4cdd-bd7f-d4b606824216)
 
 ## Features
