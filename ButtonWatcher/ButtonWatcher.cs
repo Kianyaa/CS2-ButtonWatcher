@@ -81,17 +81,17 @@ public class ButtonWatcherPlugin : BasePlugin
 
         if (entity.DesignerName == "func_button")
         {
-            Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}][{ChatColors.LightRed}{minutes}:{seconds}{ChatColors.White}]{ChatColors.Lime}{playerName}{ChatColors.White}[{ChatColors.Orange}{steamId}{ChatColors.White}][{ChatColors.Lime}#{userId}{ChatColors.White}] pressed button {ChatColors.LightRed}{entityName}[#{entityIndex}]");
+            Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}][{ChatColors.LightRed}{minutes:0}:{seconds:00}{ChatColors.White}]{ChatColors.Lime}{playerName}{ChatColors.White}[{ChatColors.Orange}{steamId}{ChatColors.White}][{ChatColors.Lime}#{userId}{ChatColors.White}] pressed button {ChatColors.LightRed}{entityName}[#{entityIndex}]");
 
         }
 
         else if (entity.DesignerName == "trigger_once")
         {
-            Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}][{ChatColors.LightRed}{minutes}:{seconds}{ChatColors.White}]{ChatColors.Lime}{playerName}{ChatColors.White}[{ChatColors.Orange}{steamId}{ChatColors.White}][{ChatColors.Lime}#{userId}{ChatColors.White}] touched trigger {ChatColors.LightRed}{entityName}[#{entityIndex}]");
+            Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}][{ChatColors.LightRed}{minutes:0}:{seconds:00}{ChatColors.White}]{ChatColors.Lime}{playerName}{ChatColors.White}[{ChatColors.Orange}{steamId}{ChatColors.White}][{ChatColors.Lime}#{userId}{ChatColors.White}] touched trigger {ChatColors.LightRed}{entityName}[#{entityIndex}]");
         }
 
 
-        Logger.LogInformation($"[{playerTeam}] [{minutes}:{seconds}] {playerName}[{steamId}][#{userId}] triggered {entityName}[#{entityIndex}]!");
+        Logger.LogInformation($"[{playerTeam}] [{minutes:0}:{seconds:00}] {playerName}[{steamId}][#{userId}] triggered {entityName}[#{entityIndex}]!");
     }
 
     public override void Unload(bool hotReload)
