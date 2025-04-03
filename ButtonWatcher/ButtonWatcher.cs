@@ -51,8 +51,8 @@ public class ButtonWatcherPlugin : BasePlugin
 
         // Get player information
         var playerName = playerController.PlayerName;
-        var steamID = playerController.SteamID;
-        var userID = playerController.UserId;
+        var steamId = playerController.SteamID;
+        var userId = playerController.UserId;
         var entityName = entity.Name;
         var entityIndex = caller.Index;
         var playerTeam = playerController.Team.ToString() == "CounterTerrorist" ? "Human" : "Zombie";
@@ -78,8 +78,20 @@ public class ButtonWatcherPlugin : BasePlugin
         var seconds = timeLeft % 60;
 
         // Print to chat and log
-        Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}][{ChatColors.LightRed}{minutes}:{seconds}{ChatColors.White}]{ChatColors.Lime}{playerName}{ChatColors.White}[{ChatColors.Orange}{steamID}{ChatColors.White}][{ChatColors.Lime}#{userID}{ChatColors.White}] triggered {ChatColors.LightRed}{entityName}[#{entityIndex}] {ChatColors.White}!");
-        Logger.LogInformation($"[{playerTeam}] [{minutes}:{seconds}] {playerName}[{steamID}][#{userID}] triggered {entityName}[#{entityIndex}]!");
+
+        if (entity.DesignerName == "func_button")
+        {
+            Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}][{ChatColors.LightRed}{minutes}:{seconds}{ChatColors.White}]{ChatColors.Lime}{playerName}{ChatColors.White}[{ChatColors.Orange}{steamId}{ChatColors.White}][{ChatColors.Lime}#{userId}{ChatColors.White}] pressed button {ChatColors.LightRed}{entityName}[#{entityIndex}]");
+
+        }
+
+        else if (entity.DesignerName == "trigger_once")
+        {
+            Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}][{ChatColors.LightRed}{minutes}:{seconds}{ChatColors.White}]{ChatColors.Lime}{playerName}{ChatColors.White}[{ChatColors.Orange}{steamId}{ChatColors.White}][{ChatColors.Lime}#{userId}{ChatColors.White}] touched trigger {ChatColors.LightRed}{entityName}[#{entityIndex}]");
+        }
+
+
+        Logger.LogInformation($"[{playerTeam}] [{minutes}:{seconds}] {playerName}[{steamId}][#{userId}] triggered {entityName}[#{entityIndex}]!");
     }
 
     public override void Unload(bool hotReload)
