@@ -3,6 +3,7 @@ using CounterStrikeSharp.API;
 using Microsoft.Extensions.Logging;
 using CounterStrikeSharp.API.Modules.Utils;
 
+
 namespace ButtonWatcher;
 
 public class ButtonWatcherPlugin : BasePlugin
@@ -12,10 +13,23 @@ public class ButtonWatcherPlugin : BasePlugin
     public override string ModuleAuthor => "石 and Kianya";
     public override string ModuleDescription => "Watcher func_button and trigger_once when player trigger";
 
+    private CEntityIdentity? _entity = null;
+    private string? _playerTeam = null;
+    private int _minutes = 0;
+    private int _seconds = 0;
+    private string? _playerName = null;
+    private ulong _steamId = 0;
+    private int _userId = 0;
+    private string? _entityName = null;
+    private uint _entityIndex = 0;
+
     public override void Load(bool hotReload)
     {
         HookEntityOutput("func_button", "OnPressed", OnEntityTriggered, HookMode.Post);
         HookEntityOutput("trigger_once", "OnStartTouch", OnEntityTriggered, HookMode.Post);
+
+        RegisterEventHandler<EventGameMessage>(OnEventMessageChat);
+
     }
 
     // Hook entity output to detect player interaction
@@ -46,16 +60,16 @@ public class ButtonWatcherPlugin : BasePlugin
     private void LogPlayerInteraction(CCSPlayerController playerController, CEntityInstance caller)
     {
         // Validate caller
-        var entity = caller.Entity;
-        if (entity == null) return;
+        _entity = caller.Entity;
+        if (_entity == null) return;
 
         // Get player information
-        var playerName = playerController.PlayerName;
-        var steamId = playerController.SteamID;
-        var userId = playerController.UserId;
-        var entityName = entity.Name;
-        var entityIndex = caller.Index;
-        var playerTeam = playerController.Team.ToString() == "CounterTerrorist" ? "Human" : "Zombie";
+        _playerName = playerController.PlayerName;
+        _steamId = playerController.SteamID;
+        _userId = (int)playerController?.UserId!;
+        _entityName = _entity.Name;
+        _entityIndex = caller.Index;
+        _playerTeam = playerController?.Team.ToString() == "CounterTerrorist" ? "Human" : "Zombie";
 
         // Get game rules safely
         var gameRulesProxy = Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules").FirstOrDefault();
@@ -74,24 +88,56 @@ public class ButtonWatcherPlugin : BasePlugin
 
         // Get time left in the round
         var timeLeft = gameRules.RoundTime - timeSinceRoundStart;
-        var minutes = timeLeft / 60;
-        var seconds = timeLeft % 60;
+        _minutes = timeLeft / 60;
+        _seconds = timeLeft % 60;
 
         // Print to chat and log
 
-        if (entity.DesignerName == "func_button")
-        {
-            Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}][{ChatColors.LightRed}{minutes:0}:{seconds:00}{ChatColors.White}]{ChatColors.Lime}{playerName}{ChatColors.White}[{ChatColors.Orange}{steamId}{ChatColors.White}][{ChatColors.Lime}#{userId}{ChatColors.White}] pressed button {ChatColors.LightRed}{entityName}[#{entityIndex}]");
+        //if (_entity.DesignerName == "func_button")
+        //{
+        //    Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{_playerTeam}{ChatColors.White}][{ChatColors.LightRed}{_minutes:0}:{_seconds:00}{ChatColors.White}]{ChatColors.Lime}{_playerName}{ChatColors.White}[{ChatColors.Orange}{_steamId}{ChatColors.White}][{ChatColors.Lime}#{_userId}{ChatColors.White}] pressed button {ChatColors.LightRed}{_entityName}[#{_entityIndex}]");
 
+        //}
+
+        if (_entity.DesignerName == "trigger_once")
+        {
+            Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{_playerTeam}{ChatColors.White}][{ChatColors.LightRed}{_minutes:0}:{_seconds:00}{ChatColors.White}]{ChatColors.Lime}{_playerName}{ChatColors.White}[{ChatColors.Orange}{_steamId}{ChatColors.White}][{ChatColors.Lime}#{_userId}{ChatColors.White}] touched trigger {ChatColors.LightRed}{_entityName}[#{_entityIndex}]");
         }
 
-        else if (entity.DesignerName == "trigger_once")
+        Logger.LogInformation($"[{_playerTeam}] [{_minutes:0}:{_seconds:00}] {_playerName}[{_steamId}][#{_userId}] triggered {_entityName}[#{_entityIndex}]!");
+    }
+
+    // Hook player chat event to detect func_button class that is used (map items)
+    public HookResult OnEventMessageChat(EventGameMessage @event, GameEventInfo info)
+    {
+
+        Logger.LogInformation($"@event?.Text: {@event?.Text}");
+
+        if (@event?.Text == null)
         {
-            Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}][{ChatColors.LightRed}{minutes:0}:{seconds:00}{ChatColors.White}]{ChatColors.Lime}{playerName}{ChatColors.White}[{ChatColors.Orange}{steamId}{ChatColors.White}][{ChatColors.Lime}#{userId}{ChatColors.White}] touched trigger {ChatColors.LightRed}{entityName}[#{entityIndex}]");
+            Server.PrintToChatAll($"@event?.Text is {@event?.Text}");
+            Logger.LogInformation($"@event?.Text is {@event?.Text}");
+
+            return HookResult.Continue;
         }
 
+        if (!@event.Text.Contains("has used"))
+        {
 
-        Logger.LogInformation($"[{playerTeam}] [{minutes:0}:{seconds:00}] {playerName}[{steamId}][#{userId}] triggered {entityName}[#{entityIndex}]!");
+            Server.PrintToChatAll($"!@event.Text.Contains(\"has used\") is {!@event.Text.Contains("has used")}");
+
+            if (_entity?.DesignerName == "func_button")
+            {
+                Server.PrintToChatAll($" {ChatColors.White}[{ChatColors.Yellow}{_playerTeam}{ChatColors.White}][{ChatColors.LightRed}{_minutes:0}:{_seconds:00}{ChatColors.White}]{ChatColors.Lime}{_playerName}{ChatColors.White}[{ChatColors.Orange}{_steamId}{ChatColors.White}][{ChatColors.Lime}#{_userId}{ChatColors.White}] pressed button {ChatColors.LightRed}{_entityName}[#{_entityIndex}]");
+                Logger.LogInformation($" {ChatColors.White}[{ChatColors.Yellow}{_playerTeam}{ChatColors.White}][{ChatColors.LightRed}{_minutes:0}:{_seconds:00}{ChatColors.White}]{ChatColors.Lime}{_playerName}{ChatColors.White}[{ChatColors.Orange}{_steamId}{ChatColors.White}][{ChatColors.Lime}#{_userId}{ChatColors.White}] pressed button {ChatColors.LightRed}{_entityName}[#{_entityIndex}]");
+
+                return HookResult.Continue;
+            }
+        }
+
+        Server.PrintToChatAll($"Just to HookResult.Continue");
+        Logger.LogInformation($"Just to HookResult.Continue");
+        return HookResult.Continue;
     }
 
     public override void Unload(bool hotReload)
