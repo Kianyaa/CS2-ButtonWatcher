@@ -17,7 +17,7 @@ namespace ButtonWatcher
         public override string ModuleAuthor => "石 and Kianya";
         public override string ModuleDescription => "Watcher func_button and trigger_once when player trigger";
 
-        private const float Time = 10.0f;
+        private const float Time = 5f;
         private const float Height = 20.0f; // from up to Down
         private const float Range = -50.0f;
         private const bool Follow = true;
@@ -195,13 +195,20 @@ namespace ButtonWatcher
         [GameEventHandler(HookMode.Post)]
         public HookResult OnEventRoundStart(EventRoundStart @event, GameEventInfo info)
         {
-            _itemNames.Clear();
 
             foreach (var player in Utilities.GetPlayers())
             {
                 player.ReplicateConVar("sv_gameinstructor_enable", "true");
                 player.ReplicateConVar("gameinstructor_enable", "true");
             }
+
+            return HookResult.Continue;
+        }
+
+        [GameEventHandler(HookMode.Post)]
+        public HookResult OnEventWarmupEnd(EventWarmupEnd @event, GameEventInfo info)
+        {
+            _itemNames.Clear();
 
             string[] jsonFiles = Directory.GetFiles("../../csgo/addons/counterstrikesharp/configs/maps", "*.jsonc");
 
@@ -229,6 +236,7 @@ namespace ButtonWatcher
                 _itemNames.AddRange(new List<string> { "item", "human", "weapon" });
 
                 break;
+
             }
 
             _itemNames = _itemNames
@@ -239,7 +247,6 @@ namespace ButtonWatcher
 
             return HookResult.Continue;
         }
-
 
         private static string RemoveComments(string input)
         {
