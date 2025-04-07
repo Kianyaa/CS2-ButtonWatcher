@@ -17,8 +17,8 @@ namespace ButtonWatcher
         public override string ModuleAuthor => "石 and Kianya";
         public override string ModuleDescription => "Watcher func_button and trigger_once when player trigger";
 
-        private const float Time = 5f;
-        private const float Height = 20.0f; // from up to Down
+        private const float Time = 4.00f;
+        private const float Height = 20.0f; 
         private const float Range = -50.0f;
         private const bool Follow = true;
         private const bool ShowOffScreen = true;
@@ -59,23 +59,24 @@ namespace ButtonWatcher
             if (entity == null) return;
 
             var playerName = playerController.PlayerName;
-            var steamId = playerController.SteamID.ToString(); // Convert ulong to string
-            var userId = (int)playerController.UserId!; // Convert int? to int
+            var steamId = playerController.SteamID.ToString(); 
+            var userId = (int)playerController.UserId!; 
 
             var entityName = entity.Name;
 
             if (entityName != null)
             {
-
+                // Entity Have Name
             }
             else
             {
+                // Named Entity assume they all button for trigger
                 entityName = "trigger_button";
             }
 
             if (caller != null)
             {
-                var entityIndex = (int)caller.Index; // Convert uint to int
+                var entityIndex = (int)caller.Index; 
                 var playerTeam = playerController.Team.ToString() == "CounterTerrorist" ? "Human" : "Zombie";
 
                 var gameRulesProxy = Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules").FirstOrDefault();
@@ -102,26 +103,27 @@ namespace ButtonWatcher
 
                 if (entity.DesignerName == "func_button")
                 {
-                    // FROM JSON FILE ITEM MAP NAME
-                    Server.PrintToChatAll("---_itemNames---"); // 
 
-                    foreach (var itemNames in _itemNames)
-                    {
-                        Server.PrintToChatAll(itemNames);
-                    }
+                    // For Debugging
 
-                    Server.PrintToChatAll("---entityName---"); // 
+                    //Server.PrintToChatAll("---_itemNames---"); // 
 
-                    foreach (var entityNames in entityName.ToLower().Split("_"))
-                    {
-                        Server.PrintToChatAll(entityNames);
-                    }
+                    //foreach (var itemNames in _itemNames)
+                    //{
+                    //    Server.PrintToChatAll(itemNames);
+                    //}
+
+                    //Server.PrintToChatAll("---entityName---"); // 
+
+                    //foreach (var entityNames in entityName.ToLower().Split("_"))
+                    //{
+                    //    Server.PrintToChatAll(entityNames);
+                    //}
 
 
                     if (_itemNames.Any(word => entityName.ToLower().Split("_").Contains(word)))
                     {
                         _toggle = false;
-                        return;
                     }
 
                     if (_toggle)
@@ -145,6 +147,7 @@ namespace ButtonWatcher
                     {
                         foreach (var player in Utilities.GetPlayers())
                         {
+
                             DisplayInstructorHint(player, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, touchText);
                         }
                     });
@@ -162,7 +165,7 @@ namespace ButtonWatcher
             Server.PrintToChatAll(message.ToString());
         }
 
-        private void DisplayInstructorHint(CCSPlayerController targetEntity, float time, float height, float range, bool follow, bool showOffScreen, string iconOnScreen, string iconOffScreen, string cmd, bool showTextAlways, Color color, string text)
+        private void DisplayInstructorHint(CCSPlayerController player, float time, float height, float range, bool follow, bool showOffScreen, string iconOnScreen, string iconOffScreen, string cmd, bool showTextAlways, Color color, string text)
         {
 
             if (_entity == null || !_entity.IsValid)
@@ -174,8 +177,8 @@ namespace ButtonWatcher
             var entity = _entity;
             if (entity == null) return;
 
-            entity.Target = targetEntity.Index.ToString();
-            entity.HintTargetEntity = targetEntity.Index.ToString();
+            entity.Target = player.Index.ToString();
+            entity.HintTargetEntity = player.Index.ToString();
             entity.Static = follow;
             entity.Timeout = (int)time;
             entity.IconOffset = height;
@@ -192,6 +195,7 @@ namespace ButtonWatcher
             entity.AcceptInput("ShowHint");
         }
 
+        // This method is called when the round starts and give all player enable sv_gameinstructor_enable
         [GameEventHandler(HookMode.Post)]
         public HookResult OnEventRoundStart(EventRoundStart @event, GameEventInfo info)
         {
@@ -205,6 +209,7 @@ namespace ButtonWatcher
             return HookResult.Continue;
         }
 
+        // When new map load, clear the _itemNames list and load the new map config
         [GameEventHandler(HookMode.Post)]
         public HookResult OnEventWarmupEnd(EventWarmupEnd @event, GameEventInfo info)
         {
@@ -216,7 +221,7 @@ namespace ButtonWatcher
             {
                 if (Path.GetFileNameWithoutExtension(file) != Server.MapName) continue;
 
-                Server.PrintToChatAll($"[ButtonWatcher] Loaded config for map: {Server.MapName}");
+                //Server.PrintToChatAll($"[ButtonWatcher] Loaded config for map: {Server.MapName}");
 
                 string jsonContent = RemoveComments(File.ReadAllText(file));
                 using JsonDocument doc = JsonDocument.Parse(jsonContent);
@@ -248,6 +253,7 @@ namespace ButtonWatcher
             return HookResult.Continue;
         }
 
+        // Remove comments from the JSON file when the file is loaded (when map warm up end)
         private static string RemoveComments(string input)
         {
             var lines = input.Split('\n');
@@ -261,6 +267,7 @@ namespace ButtonWatcher
             return string.Join("\n", cleanLines);
         }
 
+        // This method is called when the plugin is unloaded
         public override void Unload(bool hotReload)
         {
             UnhookEntityOutput("func_button", "OnPressed", OnEntityTriggered, HookMode.Post);
