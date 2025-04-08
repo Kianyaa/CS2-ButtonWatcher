@@ -132,10 +132,9 @@ namespace ButtonWatcher
 
                         Server.NextFrame(() =>
                         {
-                            foreach (var player in Utilities.GetPlayers())
-                            {
-                                DisplayInstructorHint(player, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, buttonText);
-                            }
+
+                            DisplayInstructorHint(playerController, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, buttonText);
+                            
                         });
                     }
                 }
@@ -145,11 +144,9 @@ namespace ButtonWatcher
 
                     Server.NextFrame(() =>
                     {
-                        foreach (var player in Utilities.GetPlayers())
-                        {
 
-                            DisplayInstructorHint(player, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, touchText);
-                        }
+                        DisplayInstructorHint(playerController, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, touchText);
+
                     });
                 }
 
