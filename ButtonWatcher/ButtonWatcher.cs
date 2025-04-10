@@ -13,7 +13,7 @@ namespace ButtonWatcher
     public class ButtonWatcherPlugin : BasePlugin
     {
         public override string ModuleName => "ButtonWatcher";
-        public override string ModuleVersion => "1.0.1";
+        public override string ModuleVersion => "1.1.1";
         public override string ModuleAuthor => "石 and Kianya";
         public override string ModuleDescription => "Watcher func_button and trigger_once when player trigger";
 
