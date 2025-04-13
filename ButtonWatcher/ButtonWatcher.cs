@@ -103,24 +103,6 @@ namespace ButtonWatcher
 
                 if (entity.DesignerName == "func_button")
                 {
-
-                    // For Debugging
-
-                    //Server.PrintToChatAll("---_itemNames---"); // 
-
-                    //foreach (var itemNames in _itemNames)
-                    //{
-                    //    Server.PrintToChatAll(itemNames);
-                    //}
-
-                    //Server.PrintToChatAll("---entityName---"); // 
-
-                    //foreach (var entityNames in entityName.ToLower().Split("_"))
-                    //{
-                    //    Server.PrintToChatAll(entityNames);
-                    //}
-
-
                     if (_itemNames.Any(word => entityName.ToLower().Split("_").Contains(word)))
                     {
                         _toggle = false;
@@ -140,14 +122,28 @@ namespace ButtonWatcher
                 }
                 else if (entity.DesignerName == "trigger_once")
                 {
-                    PrintToChatAll(playerName, steamId, userId, entityName, entityIndex, playerTeam, minutes, seconds, "touched trigger");
+                    if (_itemNames.Any(word => entityName.ToLower().Split("_").Contains(word)))
+                    {
+                        // When Zombie touch the trigger(item), set _toggle to false and not show
+                        if (playerController.Team == CsTeam.Terrorist)
+                        {
+                            _toggle = false;
+                        }
+                        
+                    }
 
-                    Server.NextFrame(() =>
+                    if (_toggle)
                     {
 
-                        DisplayInstructorHint(playerController, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, touchText);
+                        PrintToChatAll(playerName, steamId, userId, entityName, entityIndex, playerTeam, minutes, seconds, "touched trigger");
 
-                    });
+                        Server.NextFrame(() =>
+                        {
+
+                            DisplayInstructorHint(playerController, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, touchText);
+
+                        });
+                    }
                 }
 
                 Logger.LogInformation($"[{playerTeam}] [{minutes:0}:{seconds:00}] {playerName}[{steamId}][#{userId}] triggered {entityName}[#{entityIndex}]!");
@@ -249,6 +245,19 @@ namespace ButtonWatcher
 
             return HookResult.Continue;
         }
+
+        // Hook Event Hint 
+        //[GameEventHandler(HookMode.Pre)]
+        //public HookResult OnEventHintStart(EventInstructorServerHintCreate @event, GameEventInfo info)
+        //{
+
+        //    //Server.PrintToChatAll($"@event.HintActivatorCaption: {@event.HintActivatorCaption}");
+        //    //Server.PrintToChatAll($"@event.EventName: {@event.EventName}");
+        //    //Server.PrintToChatAll($"@event.HintCaption: {@event.HintCaption}");
+        //    //Server.PrintToChatAll($"@event.HintName: {@event.HintName}");
+
+        //    return HookResult.Continue;
+        //}
 
         // Remove comments from the JSON file when the file is loaded (when map warm up end)
         private static string RemoveComments(string input)
