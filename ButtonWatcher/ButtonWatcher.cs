@@ -208,7 +208,7 @@ namespace ButtonWatcher
         {
             _itemNames.Clear();
 
-            string[] jsonFiles = Directory.GetFiles("../../csgo/addons/counterstrikesharp/configs/maps", "*.jsonc");
+            string[] jsonFiles = Directory.GetFiles("../../csgo/addons/counterstrikesharp/configs/entwatch/maps", "*.jsonc");
 
             foreach (var file in jsonFiles)
             {
