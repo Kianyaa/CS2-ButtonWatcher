@@ -185,8 +185,9 @@ namespace ButtonWatcher
             var entity = _entity;
             if (entity == null) return;
 
-            entity.Target = player.Index.ToString();
-            entity.HintTargetEntity = player.Index.ToString();
+            string buffer = player.Index.ToString();
+            entity.Target = buffer;
+            entity.HintTargetEntity = buffer;
             entity.Static = follow;
             entity.Timeout = (int)time;
             entity.IconOffset = height;
@@ -276,13 +277,6 @@ namespace ButtonWatcher
         //public HookResult OnEventHintStart(EventInstructorServerHintCreate @event, GameEventInfo info)
         //{
 
-        //    //Server.PrintToChatAll($"@event.HintActivatorCaption: {@event.HintActivatorCaption}");
-        //    //Server.PrintToChatAll($"@event.EventName: {@event.EventName}");
-        //    //Server.PrintToChatAll($"@event.HintCaption: {@event.HintCaption}");
-        //    //Server.PrintToChatAll($"@event.HintName: {@event.HintName}");
-
-        //    return HookResult.Continue;
-        //}
 
         // Remove comments from the JSON file when the file is loaded (when map warm up end)
         private static string RemoveComments(string input)
