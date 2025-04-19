@@ -6,6 +6,7 @@ using System.Drawing;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using System.Text;
 using System.Text.Json;
+using CounterStrikeSharp.API.Modules.Entities;
 
 
 namespace ButtonWatcher
@@ -29,6 +30,7 @@ namespace ButtonWatcher
         private readonly Color _color = Color.FromArgb(255, 255, 0, 0);
 
         private CEnvInstructorHint? _entity;
+        private List<CCSPlayerController> _playerList = new List<CCSPlayerController>()!;
         private List<string> _itemNames = new List<string?>()!;
         private bool _toggle;
 
@@ -114,8 +116,15 @@ namespace ButtonWatcher
 
                         Server.NextFrame(() =>
                         {
+                            foreach (var player in _playerList)
+                            {
+                                if (player == null || !player.IsValid || !player.PlayerPawn.IsValid || 
+                                    player.Connected != PlayerConnectedState.PlayerConnected || player.PawnIsAlive == false ||
+                                    player.Pawn.Value.LifeState != (byte)LifeState_t.LIFE_ALIVE) continue;
 
-                            DisplayInstructorHint(playerController, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, buttonText);
+                                DisplayInstructorHint(player, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, buttonText);
+
+                            }
                             
                         });
                     }
@@ -139,9 +148,15 @@ namespace ButtonWatcher
 
                         Server.NextFrame(() =>
                         {
+                            foreach (var player in _playerList)
+                            {
+                                if (player == null || !player.IsValid || !player.PlayerPawn.IsValid ||
+                                    player.Connected != PlayerConnectedState.PlayerConnected ||
+                                    player.PawnIsAlive == false ||
+                                    player.Pawn.Value.LifeState != (byte)LifeState_t.LIFE_ALIVE) continue;
 
-                            DisplayInstructorHint(playerController, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, touchText);
-
+                                DisplayInstructorHint(player, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, touchText);
+                            }
                         });
                     }
                 }
@@ -192,12 +207,22 @@ namespace ButtonWatcher
         [GameEventHandler(HookMode.Post)]
         public HookResult OnEventRoundStart(EventRoundStart @event, GameEventInfo info)
         {
+            var players =  Utilities.GetPlayers();
+            _playerList.Clear();
 
-            foreach (var player in Utilities.GetPlayers())
+            if (players == null) return HookResult.Continue;
+
+            foreach (var player in players)
             {
+                if(player == null || !player.IsValid || !player.PlayerPawn.IsValid || player.Connected != PlayerConnectedState.PlayerConnected || player.PawnIsAlive == false) continue;
+
                 player.ReplicateConVar("sv_gameinstructor_enable", "true");
                 player.ReplicateConVar("gameinstructor_enable", "true");
+
+                _playerList.Add(player);
             }
+
+            Server.ExecuteCommand("sv_gameinstructor_enable true");
 
             return HookResult.Continue;
         }
