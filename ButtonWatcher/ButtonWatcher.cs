@@ -30,14 +30,19 @@ namespace ButtonWatcher
         private readonly Color _color = Color.FromArgb(255, 255, 0, 0);
 
         private CEnvInstructorHint? _entity;
-        private List<CCSPlayerController> _playerList = new List<CCSPlayerController>()!;
         private List<string> _itemNames = new List<string?>()!;
         private bool _toggle;
+
+        // Time
+        //int _currentTimeButton = 0;
+        //int _currentTimeTouch = 0;
+        //private const int Cooldown = 5; // Cooldown in seconds
 
         public override void Load(bool hotReload)
         {
             HookEntityOutput("func_button", "OnPressed", OnEntityTriggered, HookMode.Post);
             HookEntityOutput("trigger_once", "OnStartTouch", OnEntityTriggered, HookMode.Post);
+
         }
 
         private HookResult OnEntityTriggered(CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay)
@@ -112,20 +117,19 @@ namespace ButtonWatcher
 
                     if (_toggle)
                     {
-                        PrintToChatAll(playerName, steamId, userId, entityName, entityIndex, playerTeam, minutes, seconds, "pressed button");
+
+                        //if (_currentTimeTouch + 5 <= (int)Server.CurrentTime)
+                        //{
+                        //    return;
+                        //}
+
+                        //_currentTimeTouch = (int)Server.CurrentTime;
+
+                        PrintToChatAll(playerName, steamId, userId, entityName, entityIndex, playerTeam, minutes, seconds, "triggered");
 
                         Server.NextFrame(() =>
                         {
-                            foreach (var player in _playerList)
-                            {
-                                if (player == null || !player.IsValid || !player.PlayerPawn.IsValid || 
-                                    player.Connected != PlayerConnectedState.PlayerConnected || player.PawnIsAlive == false ||
-                                    player.Pawn.Value.LifeState != (byte)LifeState_t.LIFE_ALIVE) continue;
-
-                                DisplayInstructorHint(player, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, buttonText);
-
-                            }
-                            
+                            DisplayInstructorHint(playerController, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, buttonText);
                         });
                     }
                 }
@@ -143,20 +147,18 @@ namespace ButtonWatcher
 
                     if (_toggle)
                     {
+                        //if (_currentTimeButton + 5 <= (int)Server.CurrentTime)
+                        //{
+                        //    return;
+                        //}
 
-                        PrintToChatAll(playerName, steamId, userId, entityName, entityIndex, playerTeam, minutes, seconds, "touched trigger");
+                        //_currentTimeButton = (int)Server.CurrentTime;
+
+                        PrintToChatAll(playerName, steamId, userId, entityName, entityIndex, playerTeam, minutes, seconds, "triggered");
 
                         Server.NextFrame(() =>
-                        {
-                            foreach (var player in _playerList)
-                            {
-                                if (player == null || !player.IsValid || !player.PlayerPawn.IsValid ||
-                                    player.Connected != PlayerConnectedState.PlayerConnected ||
-                                    player.PawnIsAlive == false ||
-                                    player.Pawn.Value.LifeState != (byte)LifeState_t.LIFE_ALIVE) continue;
-
-                                DisplayInstructorHint(player, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, touchText);
-                            }
+                        { 
+                            DisplayInstructorHint(playerController, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, touchText);
                         });
                     }
                 }
@@ -168,7 +170,7 @@ namespace ButtonWatcher
         private void PrintToChatAll(string playerName, string steamId, int userId, string entityName, int entityIndex, string playerTeam, int minutes, int seconds, string action)
         {
             var message = new StringBuilder();
-            message.AppendFormat($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}][{ChatColors.LightRed}{minutes:0}:{seconds:00}{ChatColors.White}]");
+            message.AppendFormat($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}]");
             message.AppendFormat($"{ChatColors.Lime}{playerName}{ChatColors.White}[{ChatColors.Orange}{steamId}{ChatColors.White}][{ChatColors.Lime}#{userId}{ChatColors.White}] {action} {ChatColors.LightRed}{entityName}[#{entityIndex}]");
             Server.PrintToChatAll(message.ToString());
         }
@@ -200,7 +202,7 @@ namespace ButtonWatcher
             entity.Color = color;
             entity.Caption = text.Replace("\n", " ");
 
-            entity.DispatchSpawn();
+            entity.DispatchSpawn(null);
             entity.AcceptInput("ShowHint");
         }
 
@@ -209,7 +211,6 @@ namespace ButtonWatcher
         public HookResult OnEventRoundStart(EventRoundStart @event, GameEventInfo info)
         {
             var players =  Utilities.GetPlayers();
-            _playerList.Clear();
 
             if (players == null) return HookResult.Continue;
 
@@ -220,7 +221,6 @@ namespace ButtonWatcher
                 player.ReplicateConVar("sv_gameinstructor_enable", "true");
                 player.ReplicateConVar("gameinstructor_enable", "true");
 
-                _playerList.Add(player);
             }
 
             Server.ExecuteCommand("sv_gameinstructor_enable true");
