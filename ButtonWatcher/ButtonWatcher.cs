@@ -18,7 +18,7 @@ namespace ButtonWatcher
         public override string ModuleAuthor => "石 and Kianya";
         public override string ModuleDescription => "Watcher func_button and trigger_once when player trigger";
 
-        private const float Time = 4.00f;
+        private const float Time = 3.00f;
         private const float Height = 20.0f; 
         private const float Range = -50.0f;
         private const bool Follow = true;
@@ -31,18 +31,20 @@ namespace ButtonWatcher
 
         private CEnvInstructorHint? _entity;
         private List<string> _itemNames = new List<string?>()!;
+        private List<int> _EntityIndex = new List<int>()!;
         private bool _toggle;
 
         // Time
-        //int _currentTimeButton = 0;
-        //int _currentTimeTouch = 0;
-        //private const int Cooldown = 5; // Cooldown in seconds
+        //float _currentTimeButton = 0;
+        float _currentTimeTouch = 0;
+
+        // playerName
+        //private string? _playerName = "";
 
         public override void Load(bool hotReload)
         {
             HookEntityOutput("func_button", "OnPressed", OnEntityTriggered, HookMode.Post);
             HookEntityOutput("trigger_once", "OnStartTouch", OnEntityTriggered, HookMode.Post);
-
         }
 
         private HookResult OnEntityTriggered(CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay)
@@ -83,7 +85,7 @@ namespace ButtonWatcher
 
             if (caller != null)
             {
-                var entityIndex = (int)caller.Index; 
+                var entityIndex = (int)caller.Index;
                 var playerTeam = playerController.Team.ToString() == "CounterTerrorist" ? "Human" : "Zombie";
 
                 var gameRulesProxy = Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules").FirstOrDefault();
@@ -117,20 +119,34 @@ namespace ButtonWatcher
 
                     if (_toggle)
                     {
+                        if (_EntityIndex.Contains(entityIndex))
+                        {
+                            return;
+                        }
 
-                        //if (_currentTimeTouch + 5 <= (int)Server.CurrentTime)
+                        //// Prevent player from triggering the button multiple times
+                        //if (_currentTimeTouch + 1 >= Server.CurrentTime)
                         //{
                         //    return;
                         //}
 
-                        //_currentTimeTouch = (int)Server.CurrentTime;
+                        //// Prevent player from triggering the button multiple times with the same name
+                        //if (playerName == _playerName && _currentTimeTouch + 5 >= Server.CurrentTime)
+                        //{
+                        //    return;
+                        //}
 
-                        PrintToChatAll(playerName, steamId, userId, entityName, entityIndex, playerTeam, minutes, seconds, "triggered");
+                        //_playerName = playerName;
+                        //_currentTimeTouch = Server.CurrentTime;
+
+                        PrintToChatAll(playerName, steamId, userId, entityName, entityIndex, playerTeam, minutes, seconds, "pressed");
 
                         Server.NextFrame(() =>
                         {
                             DisplayInstructorHint(playerController, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, buttonText);
                         });
+
+                        _EntityIndex.Add(entityIndex);
                     }
                 }
                 else if (entity.DesignerName == "trigger_once")
@@ -147,14 +163,14 @@ namespace ButtonWatcher
 
                     if (_toggle)
                     {
-                        //if (_currentTimeButton + 5 <= (int)Server.CurrentTime)
-                        //{
-                        //    return;
-                        //}
+                        if (_currentTimeTouch + 1 >= Server.CurrentTime)
+                        {
+                            return;
+                        }
 
-                        //_currentTimeButton = (int)Server.CurrentTime;
+                        _currentTimeTouch = Server.CurrentTime;
 
-                        PrintToChatAll(playerName, steamId, userId, entityName, entityIndex, playerTeam, minutes, seconds, "triggered");
+                        PrintToChatAll(playerName, steamId, userId, entityName, entityIndex, playerTeam, minutes, seconds, "touched");
 
                         Server.NextFrame(() =>
                         { 
@@ -171,7 +187,7 @@ namespace ButtonWatcher
         {
             var message = new StringBuilder();
             message.AppendFormat($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}]");
-            message.AppendFormat($"{ChatColors.Lime}{playerName}{ChatColors.White}[{ChatColors.Orange}{steamId}{ChatColors.White}][{ChatColors.Lime}#{userId}{ChatColors.White}] {action} {ChatColors.LightRed}{entityName}[#{entityIndex}]");
+            message.AppendFormat($"{ChatColors.Lime}{playerName}{ChatColors.White}[{ChatColors.Orange}{steamId}{ChatColors.White}] {action} {ChatColors.LightRed}{entityName}[#{entityIndex}]");
             Server.PrintToChatAll(message.ToString());
         }
 
@@ -211,6 +227,11 @@ namespace ButtonWatcher
         public HookResult OnEventRoundStart(EventRoundStart @event, GameEventInfo info)
         {
             var players =  Utilities.GetPlayers();
+
+            _EntityIndex.Clear();
+            //_currentTimeButton = 0;
+            _currentTimeTouch = 0;
+            //_playerName = "";
 
             if (players == null) return HookResult.Continue;
 
@@ -276,7 +297,6 @@ namespace ButtonWatcher
         //[GameEventHandler(HookMode.Pre)]
         //public HookResult OnEventHintStart(EventInstructorServerHintCreate @event, GameEventInfo info)
         //{
-
 
         // Remove comments from the JSON file when the file is loaded (when map warm up end)
         private static string RemoveComments(string input)
