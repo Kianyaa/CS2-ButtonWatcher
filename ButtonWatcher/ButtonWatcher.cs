@@ -7,6 +7,8 @@ using CounterStrikeSharp.API.Core.Attributes.Registration;
 using System.Text;
 using System.Text.Json;
 using CounterStrikeSharp.API.Modules.Entities;
+using CounterStrikeSharp.API.Modules.Commands;
+using System.Linq;
 
 
 namespace ButtonWatcher
@@ -33,6 +35,8 @@ namespace ButtonWatcher
         private List<string> _itemNames = new List<string?>()!;
         private List<int> _EntityIndex = new List<int>()!;
         private bool _toggle;
+
+        private List<CCSPlayerController?> _playerList = new List<CCSPlayerController?>();
 
         // Time
         //float _currentTimeButton = 0;
@@ -222,6 +226,50 @@ namespace ButtonWatcher
             entity.AcceptInput("ShowHint");
         }
 
+        [ConsoleCommand("css_hint", "0 = turn off trigger message on screen, 1 = turn on trigger message on screen")]
+        [CommandHelper(minArgs: 1, whoCanExecute: CommandUsage.CLIENT_ONLY)]
+        public void ToggleHint(CCSPlayerController player, CommandInfo commandInfo)
+        {
+            if (player == null || !player.IsValid || !player.PlayerPawn.IsValid || player.Connected != PlayerConnectedState.PlayerConnected || player.PawnIsAlive == false) return;
+
+            if (commandInfo.GetArg(1) == "0")
+            {
+
+                if (_playerList.Contains(player))
+                {
+                    player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}You already turn off the trigger message");
+
+                    return;
+                }
+
+                player.ReplicateConVar("sv_gameinstructor_enable", "false");
+                player.ReplicateConVar("gameinstructor_enable", "false");
+                Server.ExecuteCommand("sv_gameinstructor_enable false");
+
+                _playerList.Add(player);
+
+                player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}Turn off trigger message in next round");
+
+                return;
+            }
+
+            if (commandInfo.GetArg(1) == "1")
+            {
+                if (_playerList.Contains(player))
+                {
+                    _playerList.Remove(player);
+
+                    player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}Turn on trigger message on screen in next round");
+
+                    return;
+                }
+
+                player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}You already turn on trigger message on screen");
+
+            }
+
+        }
+
         // This method is called when the round starts and give all player enable sv_gameinstructor_enable
         [GameEventHandler(HookMode.Post)]
         public HookResult OnEventRoundStart(EventRoundStart @event, GameEventInfo info)
@@ -237,6 +285,18 @@ namespace ButtonWatcher
 
             foreach (var player in players)
             {
+                if (_playerList.Contains(player))
+                {
+                    if (player == null || !player.IsValid || !player.PlayerPawn.IsValid ||
+                        player.Connected != PlayerConnectedState.PlayerConnected || player.PawnIsAlive == false)
+                    {
+                        _playerList.Remove(player);
+
+                    }
+
+                    continue;
+                }
+
                 if(player == null || !player.IsValid || !player.PlayerPawn.IsValid || player.Connected != PlayerConnectedState.PlayerConnected || player.PawnIsAlive == false) continue;
 
                 player.ReplicateConVar("sv_gameinstructor_enable", "true");
