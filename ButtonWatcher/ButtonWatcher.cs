@@ -49,6 +49,15 @@ namespace ButtonWatcher
         {
             HookEntityOutput("func_button", "OnPressed", OnEntityTriggered, HookMode.Post);
             HookEntityOutput("trigger_once", "OnStartTouch", OnEntityTriggered, HookMode.Post);
+
+
+        }
+        public override void Unload(bool hotReload)
+        {
+            UnhookEntityOutput("func_button", "OnPressed", OnEntityTriggered, HookMode.Post);
+            UnhookEntityOutput("trigger_once", "OnStartTouch", OnEntityTriggered, HookMode.Post);
+
+
         }
 
         private HookResult OnEntityTriggered(CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay)
@@ -190,7 +199,7 @@ namespace ButtonWatcher
         private void PrintToChatAll(string playerName, string steamId, int userId, string entityName, int entityIndex, string playerTeam, int minutes, int seconds, string action)
         {
             var message = new StringBuilder();
-            message.AppendFormat($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}]");
+            message.AppendFormat($" {ChatColors.White}[{ChatColors.Yellow}{playerTeam}{ChatColors.White}][{ChatColors.LightRed}{minutes:0}:{seconds:00}{ChatColors.White}]");
             message.AppendFormat($"{ChatColors.Lime}{playerName}{ChatColors.White}[{ChatColors.Orange}{steamId}{ChatColors.White}] {action} {ChatColors.LightRed}{entityName}[#{entityIndex}]");
             Server.PrintToChatAll(message.ToString());
         }
@@ -248,7 +257,7 @@ namespace ButtonWatcher
 
                 _playerList.Add(player);
 
-                player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}Turn off trigger message in next round");
+                player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}Turn off trigger message on screen");
 
                 return;
             }
@@ -266,6 +275,13 @@ namespace ButtonWatcher
 
                 player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}You already turn on trigger message on screen");
 
+            }
+
+            if (string.IsNullOrEmpty(commandInfo.GetArg(1)) || !new[] { "1", "0" }.Contains(commandInfo.GetArg(1)))
+            {
+                player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}Invalid input, 0 = disable, 1 = enable");
+
+                return;
             }
 
         }
@@ -372,11 +388,6 @@ namespace ButtonWatcher
             return string.Join("\n", cleanLines);
         }
 
-        // This method is called when the plugin is unloaded
-        public override void Unload(bool hotReload)
-        {
-            UnhookEntityOutput("func_button", "OnPressed", OnEntityTriggered, HookMode.Post);
-            UnhookEntityOutput("trigger_once", "OnStartTouch", OnEntityTriggered, HookMode.Post);
-        }
+
     }
 }
