@@ -354,7 +354,7 @@ namespace ButtonWatcher
                     }
                 }
 
-                _itemNames.AddRange(new List<string> { "item", "human", "weapon" });
+                _itemNames.AddRange(new List<string> { "item", "human", "weapon", "magick" });
 
                 break;
 
