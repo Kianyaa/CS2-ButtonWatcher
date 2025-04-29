@@ -36,28 +36,20 @@ namespace ButtonWatcher
         private List<int> _EntityIndex = new List<int>()!;
         private bool _toggle;
 
-        private List<CCSPlayerController?> _playerList = new List<CCSPlayerController?>();
+        private readonly HashSet<CCSPlayerController?> _playerList = new HashSet<CCSPlayerController?>();
 
         // Time
-        //float _currentTimeButton = 0;
         float _currentTimeTouch = 0;
-
-        // playerName
-        //private string? _playerName = "";
 
         public override void Load(bool hotReload)
         {
             HookEntityOutput("func_button", "OnPressed", OnEntityTriggered, HookMode.Post);
             HookEntityOutput("trigger_once", "OnStartTouch", OnEntityTriggered, HookMode.Post);
-
-
         }
         public override void Unload(bool hotReload)
         {
             UnhookEntityOutput("func_button", "OnPressed", OnEntityTriggered, HookMode.Post);
             UnhookEntityOutput("trigger_once", "OnStartTouch", OnEntityTriggered, HookMode.Post);
-
-
         }
 
         private HookResult OnEntityTriggered(CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay)
@@ -136,21 +128,6 @@ namespace ButtonWatcher
                         {
                             return;
                         }
-
-                        //// Prevent player from triggering the button multiple times
-                        //if (_currentTimeTouch + 1 >= Server.CurrentTime)
-                        //{
-                        //    return;
-                        //}
-
-                        //// Prevent player from triggering the button multiple times with the same name
-                        //if (playerName == _playerName && _currentTimeTouch + 5 >= Server.CurrentTime)
-                        //{
-                        //    return;
-                        //}
-
-                        //_playerName = playerName;
-                        //_currentTimeTouch = Server.CurrentTime;
 
                         PrintToChatAll(playerName, steamId, userId, entityName, entityIndex, playerTeam, minutes, seconds, "pressed");
 
@@ -253,9 +230,11 @@ namespace ButtonWatcher
 
                 player.ReplicateConVar("sv_gameinstructor_enable", "false");
                 player.ReplicateConVar("gameinstructor_enable", "false");
-                Server.ExecuteCommand("sv_gameinstructor_enable false");
 
-                _playerList.Add(player);
+                if (!_playerList.Contains(player))
+                {
+                    _playerList.Add(player);
+                }
 
                 player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}Turn off trigger message on screen");
 
@@ -290,26 +269,34 @@ namespace ButtonWatcher
         [GameEventHandler(HookMode.Post)]
         public HookResult OnEventRoundStart(EventRoundStart @event, GameEventInfo info)
         {
-            var players =  Utilities.GetPlayers();
-
             _EntityIndex.Clear();
-            //_currentTimeButton = 0;
             _currentTimeTouch = 0;
-            //_playerName = "";
 
+            var gameRulesProxy = Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules").FirstOrDefault();
+            if (gameRulesProxy?.GameRules == null) return HookResult.Continue;
+
+            var gameRules = gameRulesProxy.GameRules;
+
+            if (gameRules.WarmupPeriod == true)
+            {
+                return HookResult.Continue;
+            }
+
+            foreach (var player in _playerList)
+            {
+                if (player == null || player.Connected != PlayerConnectedState.PlayerConnected)
+                {
+                    _playerList.Remove(player);
+                }
+            }
+
+            var players =  Utilities.GetPlayers();
             if (players == null) return HookResult.Continue;
 
             foreach (var player in players)
             {
                 if (_playerList.Contains(player))
                 {
-                    if (player == null || !player.IsValid || !player.PlayerPawn.IsValid ||
-                        player.Connected != PlayerConnectedState.PlayerConnected || player.PawnIsAlive == false)
-                    {
-                        _playerList.Remove(player);
-
-                    }
-
                     continue;
                 }
 
