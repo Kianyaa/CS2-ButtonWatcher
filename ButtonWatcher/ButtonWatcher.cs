@@ -6,13 +6,21 @@ using System.Drawing;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using System.Text;
 using System.Text.Json;
-using CounterStrikeSharp.API.Modules.Entities;
 using CounterStrikeSharp.API.Modules.Commands;
-using System.Linq;
-
+using System.Collections.Generic;
 
 namespace ButtonWatcher
 {
+    public class PositionConfig
+    {
+        public string HintEnable { get; set; } = "1";
+    }
+
+    public class Config : BasePluginConfig
+    {
+        public Dictionary<ulong, PositionConfig> ButtonWatcher { get; set; } = new();
+    }
+
     public class ButtonWatcherPlugin : BasePlugin
     {
         public override string ModuleName => "ButtonWatcher";
@@ -21,7 +29,7 @@ namespace ButtonWatcher
         public override string ModuleDescription => "Watcher func_button and trigger_once when player trigger";
 
         private const float Time = 3.00f;
-        private const float Height = 20.0f; 
+        private const float Height = 20.0f;
         private const float Range = -50.0f;
         private const bool Follow = true;
         private const bool ShowOffScreen = true;
@@ -36,7 +44,13 @@ namespace ButtonWatcher
         private List<int> _EntityIndex = new List<int>()!;
         private bool _toggle;
 
+        // in memeory data
         private readonly HashSet<CCSPlayerController?> _playerList = new HashSet<CCSPlayerController?>();
+
+
+        // database json
+        public Config Config { get; set; } = new Config();
+        private const string ConfigFilePath = "../../csgo/addons/counterstrikesharp/configs/buttonwacher_playerpref.json";
 
         // Time
         float _currentTimeTouch = 0;
@@ -45,11 +59,20 @@ namespace ButtonWatcher
         {
             HookEntityOutput("func_button", "OnPressed", OnEntityTriggered, HookMode.Post);
             HookEntityOutput("trigger_once", "OnStartTouch", OnEntityTriggered, HookMode.Post);
+
+            RegisterEventHandler<EventWarmupEnd>(OnEventWarmupEnd);
         }
         public override void Unload(bool hotReload)
         {
             UnhookEntityOutput("func_button", "OnPressed", OnEntityTriggered, HookMode.Post);
             UnhookEntityOutput("trigger_once", "OnStartTouch", OnEntityTriggered, HookMode.Post);
+
+            DeregisterEventHandler<EventWarmupEnd>(OnEventWarmupEnd);
+            _itemNames.Clear();
+            _playerList.Clear();
+            _currentTimeTouch = 0;
+            _EntityIndex.Clear();
+            Config = new Config();
         }
 
         private HookResult OnEntityTriggered(CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay)
@@ -73,8 +96,8 @@ namespace ButtonWatcher
             if (entity == null) return;
 
             var playerName = playerController.PlayerName;
-            var steamId = playerController.SteamID.ToString(); 
-            var userId = (int)playerController.UserId!; 
+            var steamId = playerController.SteamID.ToString();
+            var userId = (int)playerController.UserId!;
 
             var entityName = entity.Name;
 
@@ -148,7 +171,7 @@ namespace ButtonWatcher
                         {
                             _toggle = false;
                         }
-                        
+
                     }
 
                     if (_toggle)
@@ -163,7 +186,7 @@ namespace ButtonWatcher
                         PrintToChatAll(playerName, steamId, userId, entityName, entityIndex, playerTeam, minutes, seconds, "touched");
 
                         Server.NextFrame(() =>
-                        { 
+                        {
                             DisplayInstructorHint(playerController, Time, Height, Range, Follow, ShowOffScreen, IconOnScreen, IconOffScreen, Cmd, ShowTextAlways, _color, touchText);
                         });
                     }
@@ -234,7 +257,15 @@ namespace ButtonWatcher
                 if (!_playerList.Contains(player))
                 {
                     _playerList.Add(player);
+
                 }
+
+                Config.ButtonWatcher[player.SteamID] = new PositionConfig
+                {
+                    HintEnable = "0"
+                };
+
+                SaveConfigToFile(ConfigFilePath);
 
                 player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}Turn off trigger message on screen");
 
@@ -246,6 +277,13 @@ namespace ButtonWatcher
                 if (_playerList.Contains(player))
                 {
                     _playerList.Remove(player);
+
+                    Config.ButtonWatcher[player.SteamID] = new PositionConfig
+                    {
+                        HintEnable = "1"
+                    };
+
+                    SaveConfigToFile(ConfigFilePath);
 
                     player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}Turn on trigger message on screen in next round");
 
@@ -282,15 +320,41 @@ namespace ButtonWatcher
                 return HookResult.Continue;
             }
 
-            foreach (var player in _playerList)
+
+            foreach (var playersteamid in Config.ButtonWatcher.Keys)
             {
-                if (player == null || player.Connected != PlayerConnectedState.PlayerConnected)
+                var player = Utilities.GetPlayerFromSteamId(playersteamid);
+                if (player != null && player is { IsValid: true, Connected: PlayerConnectedState.PlayerConnected, PawnIsAlive: true })
                 {
-                    _playerList.Remove(player);
+                    if (Config.ButtonWatcher.TryGetValue(playersteamid, out var positionConfig))
+
+                        if (positionConfig.HintEnable == "0")
+                        {
+                            _playerList.Add(player);
+
+                            if (_playerList.Contains(player))
+                            {
+                                player.PrintToChat($" Add player to _playerList");
+                            }
+
+                        }
+                }
+                else
+                {
+                    continue;
                 }
             }
 
-            var players =  Utilities.GetPlayers();
+            //foreach (var player in _playerList)
+            //{
+            //    if (player == null || player.Connected != PlayerConnectedState.PlayerConnected)
+            //    {
+            //        //_playerList.Remove(player);
+            //        continue;
+            //    }
+            //}
+
+            var players = Utilities.GetPlayers();
             if (players == null) return HookResult.Continue;
 
             foreach (var player in players)
@@ -300,7 +364,7 @@ namespace ButtonWatcher
                     continue;
                 }
 
-                if(player == null || !player.IsValid || !player.PlayerPawn.IsValid || player.Connected != PlayerConnectedState.PlayerConnected || player.PawnIsAlive == false) continue;
+                if (player == null || !player.IsValid || !player.PlayerPawn.IsValid || player.Connected != PlayerConnectedState.PlayerConnected || player.PawnIsAlive == false) continue;
 
                 player.ReplicateConVar("sv_gameinstructor_enable", "true");
                 player.ReplicateConVar("gameinstructor_enable", "true");
@@ -317,6 +381,7 @@ namespace ButtonWatcher
         public HookResult OnEventWarmupEnd(EventWarmupEnd @event, GameEventInfo info)
         {
             _itemNames.Clear();
+            _playerList.Clear();
 
             string[] jsonFiles = Directory.GetFiles("../../csgo/addons/counterstrikesharp/configs/entwatch/maps", "*.jsonc");
 
@@ -353,6 +418,21 @@ namespace ButtonWatcher
                 .Distinct()
                 .ToList();
 
+            // Load Player database json
+
+            LoadConfigFromFile(ConfigFilePath);
+
+            if (!ValidateConfig(Config))
+            {
+                Logger.LogError("Invalid configuration detected. Please check the configuration file.");
+            }
+            else
+            {
+                Logger.LogInformation("ButtonWatcher Config loaded successfully.");
+
+                OnConfigParsed(Config);
+            }
+
             return HookResult.Continue;
         }
 
@@ -373,6 +453,44 @@ namespace ButtonWatcher
                     cleanLines.Add(line);
             }
             return string.Join("\n", cleanLines);
+        }
+
+        public void OnConfigParsed(Config config)
+        {
+            Config = config;
+        }
+
+        public void SaveConfigToFile(string filePath)
+        {
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            var jsonString = JsonSerializer.Serialize(Config, options);
+            File.WriteAllText(filePath, jsonString);
+        }
+
+        public void LoadConfigFromFile(string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                var jsonString = File.ReadAllText(filePath);
+                Config = JsonSerializer.Deserialize<Config>(jsonString) ?? new Config();
+            }
+        }
+
+        public bool ValidateConfig(Config config)
+        {
+            foreach (var entry in config.ButtonWatcher)
+            {
+                var positionConfig = entry.Value;
+
+                if ((positionConfig.HintEnable == null || positionConfig.HintEnable is int))
+                {
+                    Logger.LogError($"PositionConfig for SteamID '{entry.Key}' has invalid coordinates or invalid type.");
+                    return false;
+                }
+
+            }
+
+            return true;
         }
 
 
