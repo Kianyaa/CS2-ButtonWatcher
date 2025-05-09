@@ -68,11 +68,15 @@ namespace ButtonWatcher
             UnhookEntityOutput("trigger_once", "OnStartTouch", OnEntityTriggered, HookMode.Post);
 
             DeregisterEventHandler<EventWarmupEnd>(OnEventWarmupEnd);
-            _itemNames.Clear();
-            _playerList.Clear();
-            _currentTimeTouch = 0;
-            _EntityIndex.Clear();
-            Config = new Config();
+
+            if(hotReload == true) {
+                _itemNames.Clear();
+                _playerList.Clear();
+                _currentTimeTouch = 0;
+                _EntityIndex.Clear();
+                Config = new Config();
+            }
+
         }
 
         private HookResult OnEntityTriggered(CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay)
@@ -236,17 +240,57 @@ namespace ButtonWatcher
         }
 
         [ConsoleCommand("css_hint", "0 = turn off trigger message on screen, 1 = turn on trigger message on screen")]
-        [CommandHelper(minArgs: 1, whoCanExecute: CommandUsage.CLIENT_ONLY)]
+        [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
         public void ToggleHint(CCSPlayerController player, CommandInfo commandInfo)
         {
             if (player == null || !player.IsValid || !player.PlayerPawn.IsValid || player.Connected != PlayerConnectedState.PlayerConnected || player.PawnIsAlive == false) return;
 
-            if (commandInfo.GetArg(1) == "0")
+            if (commandInfo.GetArg(1) == "" || commandInfo.GetArg(1) == null) //added toggle
             {
 
                 if (_playerList.Contains(player))
                 {
-                    player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}You already turn off the trigger message");
+                    _playerList.Remove(player);
+
+                    Config.ButtonWatcher[player.SteamID] = new PositionConfig
+                    {
+                        HintEnable = "1"
+                    };
+
+                    SaveConfigToFile(ConfigFilePath);
+
+                    player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}Turn on trigger message on screen in next round");
+
+                    return;
+                }
+
+                player.ReplicateConVar("sv_gameinstructor_enable", "false");
+                player.ReplicateConVar("gameinstructor_enable", "false");
+
+                if (!_playerList.Contains(player))
+                {
+                    _playerList.Add(player);
+
+                }
+
+                Config.ButtonWatcher[player.SteamID] = new PositionConfig
+                {
+                    HintEnable = "0"
+                };
+
+                SaveConfigToFile(ConfigFilePath);
+
+                player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}Turn off trigger message on screen");
+
+                return;
+            }
+
+            if (commandInfo.GetArg(1) == "0") //added toggle
+            {
+
+                if (_playerList.Contains(player))
+                {
+                    player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}You already turn off trigger message on screen");
 
                     return;
                 }
@@ -294,7 +338,7 @@ namespace ButtonWatcher
 
             }
 
-            if (string.IsNullOrEmpty(commandInfo.GetArg(1)) || !new[] { "1", "0" }.Contains(commandInfo.GetArg(1)))
+            if (!new[] { "1", "0", "" }.Contains(commandInfo.GetArg(1)))
             {
                 player.PrintToChat($" {ChatColors.Green}[ButtonWatcher] {ChatColors.Default}Invalid input, 0 = disable, 1 = enable");
 
@@ -332,27 +376,19 @@ namespace ButtonWatcher
                         {
                             _playerList.Add(player);
 
-                            if (_playerList.Contains(player))
-                            {
-                                player.PrintToChat($" Add player to _playerList");
-                            }
+                            //if (_playerList.Contains(player))
+                            //{
+                            //    player.PrintToChat($" Add player to _playerList");
+                            //}
 
                         }
+                    
                 }
                 else
                 {
                     continue;
                 }
             }
-
-            //foreach (var player in _playerList)
-            //{
-            //    if (player == null || player.Connected != PlayerConnectedState.PlayerConnected)
-            //    {
-            //        //_playerList.Remove(player);
-            //        continue;
-            //    }
-            //}
 
             var players = Utilities.GetPlayers();
             if (players == null) return HookResult.Continue;
@@ -428,7 +464,7 @@ namespace ButtonWatcher
             }
             else
             {
-                Logger.LogInformation("ButtonWatcher Config loaded successfully.");
+                Logger.LogInformation("ButtonWatcher player database loaded successfully.");
 
                 OnConfigParsed(Config);
             }
